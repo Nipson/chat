@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat en Tiempo Real</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .chat-container {
+            width: 90%;
+            max-width: 800px;
+            height: 90vh;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .chat-header h1 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        .user-info {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .clear-btn {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: background 0.3s;
+        }
+
+        .clear-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9ff;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 70%;
+            word-wrap: break-word;
+            position: relative;
+            animation: fadeInUp 0.3s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.own {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.other {
+            border-bottom-left-radius: 5px;
+            margin-right: auto;
+        }
+
+        .message-header {
+            font-size: 0.75em;
+            opacity: 0.8;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .message-content {
+            font-size: 0.95em;
+            line-height: 1.4;
+        }
+
+        .message-time {
+            font-size: 0.7em;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .delete-msg {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            display: none;
+        }
+
+        .message.own:hover .delete-msg {
+            display: block;
+        }
+
+        .chat-input {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 15px;
+        }
+
+        .username-input {
+            flex: 0 0 150px;
+            padding: 12px 15px;
+            border: 2px solid #e1e5f2;
+            border-radius: 25px;
+            font-size: 0.9em;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .username-input:focus {
+            border-color: #667eea;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid #e1e5f2;
+            border-radius: 25px;
+            font-size: 0.95em;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .message-input:focus {
+            border-color: #667eea;
+        }
+
+        .send-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .send-btn:active {
+            transform: scale(0.95);
+        }
+
+        .status {
+            text-align: center;
+            color: #666;
+            font-size: 0.8em;
+            padding: 10px;
+            font-style: italic;
+        }
+
+        /* Colores para diferentes redes */
+        .ip-color-1 { background: linear-gradient(45deg, #ff6b6b, #ee5a24); color: white; }
+        .ip-color-2 { background: linear-gradient(45deg, #4834d4, #6c5ce7); color: white; }
+        .ip-color-3 { background: linear-gradient(45deg, #00d2d3, #54a0ff); color: white; }
+        .ip-color-4 { background: linear-gradient(45deg, #5f27cd, #a55eea); color: white; }
+        .ip-color-5 { background: linear-gradient(45deg, #00d84a, #05c46b); color: white; }
+        .ip-color-6 { background: linear-gradient(45deg, #feca57, #ff9ff3); color: white; }
+        .ip-color-7 { background: linear-gradient(45deg, #ff3838, #ff9500); color: white; }
+        .ip-color-8 { background: linear-gradient(45deg, #8395a7, #2c2c54); color: white; }
+
+        @media (max-width: 768px) {
+            .chat-container {
+                width: 95%;
+                height: 95vh;
+                border-radius: 10px;
+            }
+            
+            .chat-input {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .username-input {
+                flex: none;
+            }
+            
+            .message {
+                max-width: 85%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>💬 Chat en Tiempo Real</h1>
+            <div class="user-info">
+                Usuario: <span id="currentUser">Cargando...</span> | 
+                IP: <span id="currentIP">Obteniendo...</span>
+            </div>
+            <button class="clear-btn" onclick="clearMyMessages()">🗑️ Limpiar mis mensajes</button>
+        </div>
+        
+        <div class="chat-messages" id="messages"></div>
+        
+        <div class="status" id="status">Conectando...</div>
+        
+        <div class="chat-input">
+            <input type="text" id="usernameInput" class="username-input" placeholder="Tu nombre" maxlength="20">
+            <input type="text" id="messageInput" class="message-input" placeholder="Escribe tu mensaje..." maxlength="500">
+            <button class="send-btn" onclick="sendMessage()">Enviar 📤</button>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURACIÓN - Reemplaza con tu URL de Google Apps Script
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxtBW0rS-CiOGH-sQYOtVJnNLQZFlLj9OdlXjq-qSwvlVhSAr2Vqcq_FdNSV4wPCrdC/exec';
+        
+        let currentUser = '';
+        let currentIP = '';
+        let ipColorClass = '';
+        let lastMessageId = 0;
+        
+        // Inicializar la aplicación
+        async function init() {
+            await getUserIP();
+            generateUsername();
+            loadMessages();
+            setInterval(loadMessages, 2000); // Actualizar cada 2 segundos
+            
+            // Event listeners
+            document.getElementById('messageInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+            
+            document.getElementById('usernameInput').addEventListener('input', function(e) {
+                currentUser = e.target.value.trim() || generateRandomName();
+                updateUserInfo();
+                saveUserData();
+            });
+            
+            // Cargar datos guardados
+            loadUserData();
+            
+            document.getElementById('status').textContent = 'Conectado ✅';
+        }
+        
+        // Obtener IP del usuario
+        async function getUserIP() {
+            try {
+                const response = await fetch('https://api.ipify.org?format=json');
+                const data = await response.json();
+                currentIP = data.ip;
+                
+                // Generar clase de color basada en la IP
+                const ipHash = currentIP.split('.').reduce((a, b) => parseInt(a) + parseInt(b), 0);
+                ipColorClass = `ip-color-${(ipHash % 8) + 1}`;
+                
+                updateUserInfo();
+            } catch (error) {
+                console.error('Error obteniendo IP:', error);
+                currentIP = 'IP no disponible';
+                ipColorClass = 'ip-color-1';
+            }
+        }
+        
+        // Generar nombre de usuario
+        function generateUsername() {
+            const names = ['Explorador', 'Aventurero', 'Navegante', 'Viajero', 'Descubridor', 'Pionero', 'Buscador', 'Soñador'];
+            const adjectives = ['Curioso', 'Valiente', 'Inteligente', 'Creativo', 'Amigable', 'Dinámico', 'Positivo', 'Genial'];
+            
+            const name = names[Math.floor(Math.random() * names.length)];
+            const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+            const num = Math.floor(Math.random() * 999) + 1;
+            
+            currentUser = `${adj}${name}${num}`;
+            document.getElementById('usernameInput').value = currentUser;
+            updateUserInfo();
+        }
+        
+        function generateRandomName() {
+            const names = ['Explorador', 'Aventurero', 'Navegante', 'Viajero', 'Descubridor'];
+            const num = Math.floor(Math.random() * 999) + 1;
+            return names[Math.floor(Math.random() * names.length)] + num;
+        }
+        
+        // Actualizar información del usuario
+        function updateUserInfo() {
+            document.getElementById('currentUser').textContent = currentUser;
+            document.getElementById('currentIP').textContent = currentIP;
+        }
+        
+        // Enviar mensaje
+        async function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const message = messageInput.value.trim();
+            
+            if (!message) return;
+            if (!currentUser) {
+                currentUser = generateRandomName();
+                document.getElementById('usernameInput').value = currentUser;
+            }
+            
+            const messageData = {
+                action: 'sendMessage',
+                username: currentUser,
+                ip: currentIP,
+                message: message,
+                timestamp: new Date().toISOString(),
+                colorClass: ipColorClass
+            };
+            
+            try {
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(messageData)
+                });
+                
+                if (response.ok) {
+                    messageInput.value = '';
+                    loadMessages(); // Recargar inmediatamente
+                }
+            } catch (error) {
+                console.error('Error enviando mensaje:', error);
+                // Mostrar mensaje localmente como respaldo
+                displayMessageLocally(messageData);
+            }
+        }
+        
+        // Mostrar mensaje localmente (respaldo)
+        function displayMessageLocally(messageData) {
+            const messagesDiv = document.getElementById('messages');
+            const messageElement = createMessageElement(messageData, true);
+            messagesDiv.appendChild(messageElement);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        // Cargar mensajes
+        async function loadMessages() {
+            try {
+                const response = await fetch(`${APPS_SCRIPT_URL}?action=getMessages&lastId=${lastMessageId}`);
+                const data = await response.json();
+                
+                if (data.messages && data.messages.length > 0) {
+                    displayMessages(data.messages);
+                    lastMessageId = Math.max(...data.messages.map(m => m.id));
+                }
+            } catch (error) {
+                console.error('Error cargando mensajes:', error);
+                document.getElementById('status').textContent = 'Error de conexión ❌';
+            }
+        }
+        
+        // Mostrar mensajes
+        function displayMessages(messages) {
+            const messagesDiv = document.getElementById('messages');
+            const shouldScroll = messagesDiv.scrollTop + messagesDiv.clientHeight >= messagesDiv.scrollHeight - 50;
+            
+            messages.forEach(msg => {
+                if (!document.querySelector(`[data-msg-id="${msg.id}"]`)) {
+                    const messageElement = createMessageElement(msg, msg.ip === currentIP && msg.username === currentUser);
+                    messagesDiv.appendChild(messageElement);
+                }
+            });
+            
+            if (shouldScroll) {
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+        }
+        
+        // Crear elemento de mensaje
+        function createMessageElement(msg, isOwn) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isOwn ? 'own' : 'other'} ${msg.colorClass}`;
+            messageDiv.setAttribute('data-msg-id', msg.id);
+            
+            const time = new Date(msg.timestamp).toLocaleTimeString('es-ES', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            messageDiv.innerHTML = `
+                <div class="message-header">${msg.username}</div>
+                <div class="message-content">${escapeHtml(msg.message)}</div>
+                <div class="message-time">${time}</div>
+                ${isOwn ? '<button class="delete-msg" onclick="deleteMessage(this)">×</button>' : ''}
+            `;
+            
+            return messageDiv;
+        }
+        
+        // Eliminar mensaje
+        async function deleteMessage(button) {
+            const messageElement = button.closest('.message');
+            const messageId = messageElement.getAttribute('data-msg-id');
+            
+            if (!confirm('¿Eliminar este mensaje?')) return;
+            
+            try {
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'deleteMessage',
+                        messageId: messageId,
+                        userIP: currentIP,
+                        username: currentUser
+                    })
+                });
+                
+                if (response.ok) {
+                    messageElement.remove();
+                }
+            } catch (error) {
+                console.error('Error eliminando mensaje:', error);
+            }
+        }
+        
+        // Limpiar mis mensajes
+        async function clearMyMessages() {
+            if (!confirm('¿Eliminar todos tus mensajes? Esta acción no se puede deshacer.')) return;
+            
+            try {
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'clearUserMessages',
+                        userIP: currentIP,
+                        username: currentUser
+                    })
+                });
+                
+                if (response.ok) {
+                    // Remover mensajes del DOM
+                    document.querySelectorAll('.message.own').forEach(msg => msg.remove());
+                }
+            } catch (error) {
+                console.error('Error limpiando mensajes:', error);
+            }
+        }
+        
+        // Guardar datos del usuario
+        function saveUserData() {
+            localStorage.setItem('chatUser', JSON.stringify({
+                username: currentUser,
+                ip: currentIP
+            }));
+        }
+        
+        // Cargar datos del usuario
+        function loadUserData() {
+            const saved = localStorage.getItem('chatUser');
+            if (saved) {
+                const data = JSON.parse(saved);
+                if (data.username) {
+                    currentUser = data.username;
+                    document.getElementById('usernameInput').value = currentUser;
+                    updateUserInfo();
+                }
+            }
+        }
+        
+        // Escapar HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Inicializar cuando cargue la página
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
